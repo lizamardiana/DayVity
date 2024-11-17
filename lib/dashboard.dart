@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'diary.dart'; // Import halaman diary
 import 'todolist.dart'; // Import halaman todolist
+import 'package:table_calendar/table_calendar.dart'; // Import table_calendar
 
 void main() {
   runApp(MyApp());
@@ -27,16 +28,26 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  Map<String, dynamic>? _weatherData; // Ubah menjadi nullable
-  bool _isLoading = true;
+  Map<String, dynamic>? _weatherData;
+  Map<String, dynamic>? _calendarData;
+  bool _isLoadingWeather = true;
+  bool _isLoadingCalendar = true;
   String _errorMessage = '';
+  late Map<DateTime, List> _holidays; // Data untuk hari libur
+  late DateTime _selectedDay;
+  late DateTime _focusedDay;
 
   @override
   void initState() {
     super.initState();
     _fetchWeather();
+    _fetchCalendar();
+    _holidays = {}; // Inisialisasi data libur
+    _selectedDay = DateTime.now();
+    _focusedDay = DateTime.now();
   }
 
+  // Fungsi untuk mengambil data cuaca
   Future<void> _fetchWeather() async {
     try {
       final response = await http.get(Uri.parse(
@@ -45,20 +56,61 @@ class _DashboardPageState extends State<DashboardPage> {
       if (response.statusCode == 200) {
         setState(() {
           _weatherData = json.decode(response.body);
-          _isLoading = false;
+          _isLoadingWeather = false;
         });
       } else {
         setState(() {
           _errorMessage = 'Failed to load weather data';
-          _isLoading = false;
+          _isLoadingWeather = false;
         });
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load weather data: $e';
-        _isLoading = false;
+        _isLoadingWeather = false;
       });
       print(e);
+    }
+  }
+
+  // Fungsi untuk mengambil data hari libur dari Calendarific API
+  Future<void> _fetchCalendar() async {
+    try {
+      final response = await http.get(Uri.parse(
+          'https://calendarific.com/api/v2/holidays?&api_key=5UHw30oCbhfYCyP3Nyf4vFkpSQenu3U5&country=ID&year=2024'));
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _calendarData = json.decode(response.body);
+          _isLoadingCalendar = false;
+          _parseHolidays(); // Parsing data libur
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load calendar data';
+          _isLoadingCalendar = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load calendar data: $e';
+        _isLoadingCalendar = false;
+      });
+      print(e);
+    }
+  }
+
+  // Parsing data libur ke format yang bisa dipakai oleh TableCalendar
+  void _parseHolidays() {
+    if (_calendarData != null &&
+        _calendarData!['response']['holidays'] != null) {
+      var holidays = _calendarData!['response']['holidays'];
+      setState(() {
+        for (var holiday in holidays) {
+          DateTime holidayDate = DateTime.parse(holiday['date']['iso']);
+          _holidays[holidayDate] = [holiday['name']];
+        }
+      });
     }
   }
 
@@ -68,134 +120,203 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: Text('Dashboard'),
         centerTitle: true,
+        backgroundColor:
+            Colors.pink.shade600, // Menyesuaikan dengan latar belakang
       ),
-      body: Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.pink.shade100,
-              Colors.white,
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: SingleChildScrollView(
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.pink.shade100,
+                Colors.white,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              'Welcome to Your Personal Organizer',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Manage your tasks and diary entries easily.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 40),
-            if (_isLoading)
-              CircularProgressIndicator() // Tampilkan loading saat mengambil data
-            else if (_errorMessage.isNotEmpty)
-              Text(
-                _errorMessage,
-                style: TextStyle(color: Colors.red, fontSize: 16),
-                textAlign: TextAlign.center,
-              )
-            else
-              _buildWeatherInfo(), // Memanggil fungsi untuk membangun informasi cuaca
-            SizedBox(height: 20),
-            _buildButton(
-              context,
-              'Open Diary',
-              Icons.book,
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => DiaryPage()),
-                );
-              },
-            ),
-            SizedBox(height: 20),
-            _buildButton(
-              context,
-              'Open To-Do List',
-              Icons.list,
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TodoListPage()),
-                );
-              },
-            ),
-          ],
+          child: Column(
+            children: [
+              _buildWelcomeText(),
+              SizedBox(height: 20),
+              _buildButtonRow(),
+              SizedBox(height: 40),
+              _buildLoadingOrErrorMessage(),
+              SizedBox(height: 20),
+              _buildWeatherAndCalendar(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildWeatherInfo() {
-    return Column(
+  Widget _buildWelcomeText() {
+    return Text(
+      'Welcome to Your Personal Organizer',
+      style: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: Colors.pink.shade800, // Menyesuaikan dengan latar belakang
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildButtonRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Text(
-          'City: ${_weatherData?['name'] ?? 'Unknown'}',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        _buildButton(
+          context,
+          'Diary',
+          Icons.book,
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => DiaryPage()),
+            );
+          },
         ),
-        SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Pastikan URL ikon cuaca dibangun dengan benar
-            Image.network(
-              'https://openweathermap.org/img/wn/${_weatherData?['weather'][0]['icon']}@2x.png',
-              width: 50,
-              height: 50,
-              errorBuilder:
-                  (BuildContext context, Object error, StackTrace? stackTrace) {
-                return Icon(Icons.error,
-                    size: 50,
-                    color:
-                        Colors.red); // Tampilkan ikon error jika gagal memuat
-              },
-            ),
-            SizedBox(width: 10),
-            Text(
-              'Temperature: ${(_weatherData?['main']['temp'] - 273.15).toStringAsFixed(1)}°C',
-              style: TextStyle(fontSize: 20),
-            ),
-          ],
+        _buildButton(
+          context,
+          'To-Do List',
+          Icons.list,
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => TodoListPage()),
+            );
+          },
         ),
       ],
     );
   }
 
-  ElevatedButton _buildButton(BuildContext context, String title, IconData icon,
-      VoidCallback onPressed) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.pink,
-        padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-      ),
-      onPressed: onPressed,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white),
-          SizedBox(width: 10),
-          Text(
-            title,
-            style: TextStyle(fontSize: 20),
+  Widget _buildLoadingOrErrorMessage() {
+    if (_isLoadingWeather || _isLoadingCalendar) {
+      return CircularProgressIndicator();
+    } else if (_errorMessage.isNotEmpty) {
+      return Text(
+        _errorMessage,
+        style: TextStyle(color: Colors.red, fontSize: 16),
+        textAlign: TextAlign.center,
+      );
+    } else {
+      return SizedBox.shrink();
+    }
+  }
+
+  Widget _buildWeatherAndCalendar() {
+    return Column(
+      children: [
+        // Weather Section
+        if (_weatherData != null)
+          Card(
+            margin: EdgeInsets.only(bottom: 20),
+            elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            color: Colors.pink.shade50, // Warna yang lebih terang untuk kontras
+            child: Padding(
+              padding: EdgeInsets.all(15),
+              child: Column(
+                children: [
+                  Text(
+                    'Weather in ${_weatherData!['name']}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.pink.shade800, // Warna kontras
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.network(
+                        'https://openweathermap.org/img/wn/${_weatherData!['weather'][0]['icon']}@2x.png',
+                        width: 50,
+                        height: 50,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        '${(_weatherData!['main']['temp'] - 273.15).toStringAsFixed(1)}°C',
+                        style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.pink.shade800), // Warna kontras
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
+        // Calendar Section
+        Card(
+          elevation: 5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          color: Colors.white, // Warna terang agar kontras dengan pink
+          child: Padding(
+            padding: EdgeInsets.all(15),
+            child: TableCalendar(
+              firstDay: DateTime.utc(2020, 1, 1),
+              lastDay: DateTime.utc(2030, 12, 31),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) {
+                return isSameDay(_selectedDay, day);
+              },
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              eventLoader: (day) {
+                return _holidays[day] ?? [];
+              },
+              calendarStyle: CalendarStyle(
+                selectedTextStyle: TextStyle(color: Colors.white),
+                selectedDecoration: BoxDecoration(
+                  color:
+                      Colors.orange.shade600, // Bright color for selected day
+                  shape: BoxShape.circle,
+                ),
+                todayTextStyle: TextStyle(
+                    color: Colors.pink.shade800), // Kontras dengan hari ini
+                todayDecoration: BoxDecoration(
+                  color:
+                      Colors.green.shade700, // Hari ini highlight dengan hijau
+                  shape: BoxShape.circle,
+                ),
+                markersMaxCount: 1,
+                markerDecoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildButton(BuildContext context, String label, IconData icon,
+      VoidCallback onPressed) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.pink.shade500, // Background color
+        foregroundColor: Colors.white, // Text color (previously 'onPrimary')
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
       ),
     );
   }

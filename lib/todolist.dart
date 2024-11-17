@@ -145,7 +145,7 @@ class Logo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Image.asset('images/v7_116.png', width: 100), // Ukuran logo lebih kecil
+        Image.asset('images/v7_116.png', width: 100),
         SizedBox(width: 10),
         Text(
           'TO DO LIST',
