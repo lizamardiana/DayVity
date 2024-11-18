@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'diary.dart'; // Import halaman diary
 import 'todolist.dart'; // Import halaman todolist
+import 'wishlist.dart'; // Import halaman wishlist
 import 'package:table_calendar/table_calendar.dart'; // Import table_calendar
 
 void main() {
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Dashboard',
       theme: ThemeData(
-        fontFamily: 'Poppins',
+        fontFamily: 'Times New Roman',
       ),
       home: DashboardPage(),
     );
@@ -120,9 +121,9 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: Text('Dashboard'),
         centerTitle: true,
-        backgroundColor:
-            Colors.pink.shade600, // Menyesuaikan dengan latar belakang
+        backgroundColor: Colors.pink.shade600,
       ),
+      drawer: MyDrawer(), // Menambahkan drawer di sini
       body: SingleChildScrollView(
         child: Container(
           padding: EdgeInsets.all(20),
@@ -140,8 +141,6 @@ class _DashboardPageState extends State<DashboardPage> {
             children: [
               _buildWelcomeText(),
               SizedBox(height: 20),
-              _buildButtonRow(),
-              SizedBox(height: 40),
               _buildLoadingOrErrorMessage(),
               SizedBox(height: 20),
               _buildWeatherAndCalendar(),
@@ -158,39 +157,9 @@ class _DashboardPageState extends State<DashboardPage> {
       style: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.bold,
-        color: Colors.pink.shade800, // Menyesuaikan dengan latar belakang
+        color: Colors.pink.shade800,
       ),
       textAlign: TextAlign.center,
-    );
-  }
-
-  Widget _buildButtonRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildButton(
-          context,
-          'Diary',
-          Icons.book,
-          () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => DiaryPage()),
-            );
-          },
-        ),
-        _buildButton(
-          context,
-          'To-Do List',
-          Icons.list,
-          () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => TodoListPage()),
-            );
-          },
-        ),
-      ],
     );
   }
 
@@ -211,7 +180,6 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildWeatherAndCalendar() {
     return Column(
       children: [
-        // Weather Section
         if (_weatherData != null)
           Card(
             margin: EdgeInsets.only(bottom: 20),
@@ -219,7 +187,7 @@ class _DashboardPageState extends State<DashboardPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
             ),
-            color: Colors.pink.shade50, // Warna yang lebih terang untuk kontras
+            color: Colors.pink.shade50,
             child: Padding(
               padding: EdgeInsets.all(15),
               child: Column(
@@ -229,7 +197,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.pink.shade800, // Warna kontras
+                      color: Colors.pink.shade800,
                     ),
                   ),
                   SizedBox(height: 10),
@@ -245,8 +213,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       Text(
                         '${(_weatherData!['main']['temp'] - 273.15).toStringAsFixed(1)}°C',
                         style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.pink.shade800), // Warna kontras
+                            fontSize: 20, color: Colors.pink.shade800),
                       ),
                     ],
                   ),
@@ -254,13 +221,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
           ),
-        // Calendar Section
         Card(
           elevation: 5,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
-          color: Colors.white, // Warna terang agar kontras dengan pink
+          color: Colors.white,
           child: Padding(
             padding: EdgeInsets.all(15),
             child: TableCalendar(
@@ -282,15 +248,12 @@ class _DashboardPageState extends State<DashboardPage> {
               calendarStyle: CalendarStyle(
                 selectedTextStyle: TextStyle(color: Colors.white),
                 selectedDecoration: BoxDecoration(
-                  color:
-                      Colors.orange.shade600, // Bright color for selected day
+                  color: Colors.orange.shade600,
                   shape: BoxShape.circle,
                 ),
-                todayTextStyle: TextStyle(
-                    color: Colors.pink.shade800), // Kontras dengan hari ini
+                todayTextStyle: TextStyle(color: Colors.pink.shade800),
                 todayDecoration: BoxDecoration(
-                  color:
-                      Colors.green.shade700, // Hari ini highlight dengan hijau
+                  color: Colors.green.shade700,
                   shape: BoxShape.circle,
                 ),
                 markersMaxCount: 1,
@@ -305,18 +268,58 @@ class _DashboardPageState extends State<DashboardPage> {
       ],
     );
   }
+}
 
-  Widget _buildButton(BuildContext context, String label, IconData icon,
-      VoidCallback onPressed) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.pink.shade500, // Background color
-        foregroundColor: Colors.white, // Text color (previously 'onPrimary')
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+class MyDrawer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.pink.shade600,
+            ),
+            child: Text(
+              'Menu',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: Icon(Icons.book),
+            title: Text('Diary'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DiaryPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.list),
+            title: Text('To-Do List'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TodoListPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.favorite),
+            title: Text('Wishlist'), // Menambahkan item Wishlist
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WishlistPage()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
