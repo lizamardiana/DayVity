@@ -54,6 +54,10 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  fonts:
+    - family: NotoColorEmoji
+      fonts:
+        - asset: fonts/NotoColorEmoji.ttf
   assets:
     - assets/images/
   uses-material-design: true
