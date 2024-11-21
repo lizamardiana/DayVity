@@ -5,6 +5,7 @@ import 'diary.dart'; // Import halaman diary
 import 'todolist.dart'; // Import halaman todolist
 import 'wishlist.dart'; // Import halaman wishlist
 import 'package:table_calendar/table_calendar.dart'; // Import table_calendar
+import 'settings.dart';
 
 void main() {
   runApp(MyApp());
@@ -311,11 +312,21 @@ class MyDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: Icon(Icons.favorite),
-            title: Text('Wishlist'), // Menambahkan item Wishlist
+            title: Text('Wishlist'),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => WishlistPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.settings),
+            title: Text('Settings'), // Menambahkan item Settings
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsPage()),
               );
             },
           ),
