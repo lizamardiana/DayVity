@@ -35,7 +35,7 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _isLoadingWeather = true;
   bool _isLoadingCalendar = true;
   String _errorMessage = '';
-  late Map<DateTime, List> _holidays; // Data untuk hari libur
+  late Map<DateTime, List<String>> _holidays; // Data untuk hari libur
   late DateTime _selectedDay;
   late DateTime _focusedDay;
 
@@ -110,9 +110,14 @@ class _DashboardPageState extends State<DashboardPage> {
       setState(() {
         for (var holiday in holidays) {
           DateTime holidayDate = DateTime.parse(holiday['date']['iso']);
+          // Menambahkan nama hari libur ke dalam map
           _holidays[holidayDate] = [holiday['name']];
+          print(
+              'Holiday added: ${holiday['name']} on $holidayDate'); // Debugging
         }
       });
+    } else {
+      print('No holidays found in the response'); // Debugging
     }
   }
 
@@ -242,6 +247,27 @@ class _DashboardPageState extends State<DashboardPage> {
                   _selectedDay = selectedDay;
                   _focusedDay = focusedDay;
                 });
+                // Menampilkan dialog jika ada hari libur
+                if (_holidays[selectedDay] != null) {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Hari Libur'),
+                        content: Text(
+                            'Hari libur: ${_holidays[selectedDay]!.join(', ')}'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Text('Tutup'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
               },
               eventLoader: (day) {
                 return _holidays[day] ?? [];
