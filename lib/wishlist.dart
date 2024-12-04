@@ -58,15 +58,15 @@ class _WishlistPageState extends State<WishlistPage> {
     final confirm = await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Hapus Item'),
-        content: Text('Apakah Anda yakin ingin menghapus item ini?'),
+        title: Text('Delete Item'),
+        content: Text('Are you sure you want to delete this item?'),
         actions: [
           TextButton(
-            child: Text('Batal'),
+            child: Text('Cancel'),
             onPressed: () => Navigator.of(ctx).pop(false),
           ),
           TextButton(
-            child: Text('Hapus'),
+            child: Text('Delete'),
             onPressed: () => Navigator.of(ctx).pop(true),
           ),
         ],
@@ -92,9 +92,9 @@ class _WishlistPageState extends State<WishlistPage> {
     final String items = _wishlistItems
         .map((item) => '${item.title} (${item.category})')
         .join(', ');
-    final String message = "Wishlist saya: $items";
+    final String message = "My Wishlist: $items";
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Berbagi: $message")),
+      SnackBar(content: Text("Sharing: $message")),
     );
   }
 
@@ -118,7 +118,7 @@ class _WishlistPageState extends State<WishlistPage> {
             child: TextField(
               controller: _controller,
               decoration: InputDecoration(
-                labelText: 'Tambahkan Item Baru',
+                labelText: 'Add New Item',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -128,7 +128,7 @@ class _WishlistPageState extends State<WishlistPage> {
             child: TextField(
               controller: _noteController,
               decoration: InputDecoration(
-                labelText: 'Catatan (opsional)',
+                labelText: 'Note',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -138,14 +138,16 @@ class _WishlistPageState extends State<WishlistPage> {
             child: TextField(
               controller: _categoryController,
               decoration: InputDecoration(
-                labelText: 'Kategori (opsional)',
+                labelText: 'Category',
                 border: OutlineInputBorder(),
               ),
             ),
           ),
           ElevatedButton(
             onPressed: _addItem,
-            child: Text('Tambahkan ke Wishlist'),
+            child: Text('Add to Wishlist',
+                style: TextStyle(
+                    color: Colors.white)), // Text color changed to white
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.pink.shade600,
             ),
@@ -167,9 +169,9 @@ class _WishlistPageState extends State<WishlistPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (_wishlistItems[index].note.isNotEmpty)
-                        Text('Catatan: ${_wishlistItems[index].note}'),
+                        Text('Note: ${_wishlistItems[index].note}'),
                       if (_wishlistItems[index].category.isNotEmpty)
-                        Text('Kategori: ${_wishlistItems[index].category}'),
+                        Text('Category: ${_wishlistItems[index].category}'),
                     ],
                   ),
                   trailing: Row(

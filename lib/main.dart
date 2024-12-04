@@ -62,7 +62,7 @@ class LoginPage extends StatelessWidget {
                     ),
                     SizedBox(height: 11),
                     Text(
-                      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
+                      "Please enter your credentials to login.",
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 12,
@@ -72,7 +72,6 @@ class LoginPage extends StatelessWidget {
                     SizedBox(height: 64),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Text(
                           "Email",
@@ -92,7 +91,7 @@ class LoginPage extends StatelessWidget {
                           child: TextField(
                             decoration: InputDecoration(
                               border: InputBorder.none,
-                              hintText: "lizamardiana16@gmail.com",
+                              hintText: "example@gmail.com",
                               hintStyle: TextStyle(
                                 fontSize: 12,
                                 color: Colors.black.withOpacity(0.6),
@@ -140,7 +139,7 @@ class LoginPage extends StatelessWidget {
                           backgroundColor: Colors.pink[600],
                         ),
                         onPressed: () {
-                          // Navigasi ke halaman To Do List
+                          // Navigasi ke halaman Dashboard
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
@@ -161,7 +160,7 @@ class LoginPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "You don't have an account yet? ",
+                          "Don't have an account yet? ",
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.black,
