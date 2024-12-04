@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart'; // Impor Firebase Core
+import 'firebase_options.dart'; // Impor file konfigurasi Firebase yang dihasilkan
 import 'dashboard.dart';
 import 'register.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding
+      .ensureInitialized(); // Memastikan binding telah diinisialisasi
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  ); // Inisialisasi Firebase
   runApp(const MyApp());
 }
 

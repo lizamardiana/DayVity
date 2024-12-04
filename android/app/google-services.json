@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009775766965",
+    "project_id": "dayvity-ff510",
+    "storage_bucket": "dayvity-ff510.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009775766965:android:25b3fc72792dcdde0cfdfc",
+        "android_client_info": {
+          "package_name": "com.dayvity.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArOrS5T8dN5WkSiHTneihmas3qa5PJFMU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
