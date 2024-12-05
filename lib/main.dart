@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; // Impor Firebase Core
 import 'firebase_options.dart'; // Impor file konfigurasi Firebase yang dihasilkan
-import 'dashboard.dart';
 import 'register.dart';
+import 'auth_provider.dart'; // Impor AuthProvider
+import 'package:provider/provider.dart'; // Impor provider
+import 'dashboard.dart'; // Impor halaman dashboard
 
 void main() async {
   WidgetsFlutterBinding
@@ -18,18 +20,32 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: LoginPage(),
+    return ChangeNotifierProvider(
+      create: (context) => AuthProvider(), // Menambahkan AuthProvider
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        initialRoute: '/', // Halaman awal
+        routes: {
+          '/': (context) => LoginPage(), // Rute untuk halaman login
+          '/dashboard': (context) =>
+              DashboardPage(), // Rute untuk halaman dashboard
+        },
+      ),
     );
   }
 }
 
 class LoginPage extends StatelessWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  LoginPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final authProvider =
+        Provider.of<AuthProvider>(context); // Ambil instance AuthProvider
+
     return Scaffold(
       body: Stack(
         children: [
@@ -96,19 +112,17 @@ class LoginPage extends StatelessWidget {
                             color: Colors.pink[50],
                           ),
                           child: TextField(
+                            controller: emailController,
                             decoration: InputDecoration(
                               border: InputBorder.none,
-                              hintText: "example@gmail.com",
-                              hintStyle: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black.withOpacity(0.6),
-                              ),
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 17),
+                              hintText:
+                                  'Enter your email', // Hint text untuk email
                             ),
                           ),
                         ),
-                        SizedBox(height: 15),
+                        SizedBox(height: 20),
                         Text(
                           "Password",
                           style: TextStyle(
@@ -125,12 +139,15 @@ class LoginPage extends StatelessWidget {
                             color: Colors.pink[50],
                           ),
                           child: TextField(
+                            controller: passwordController,
                             obscureText: true,
                             decoration: InputDecoration(
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 17),
                               suffixIcon: Icon(Icons.visibility_off),
+                              hintText:
+                                  'Enter your password', // Hint text untuk password
                             ),
                           ),
                         ),
@@ -145,13 +162,19 @@ class LoginPage extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.pink[600],
                         ),
-                        onPressed: () {
-                          // Navigasi ke halaman Dashboard
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => DashboardPage()),
-                          );
+                        onPressed: () async {
+                          String email = emailController.text;
+                          String password = passwordController.text;
+
+                          try {
+                            await authProvider.login(email, password);
+                            Navigator.pushReplacementNamed(
+                                context, '/dashboard');
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
                         },
                         child: Text(
                           "LOGIN",
@@ -175,7 +198,6 @@ class LoginPage extends StatelessWidget {
                         ),
                         GestureDetector(
                           onTap: () {
-                            // Navigasi ke halaman registrasi
                             Navigator.push(
                               context,
                               MaterialPageRoute(
