@@ -31,6 +31,7 @@ dependencies:
   firebase_core: ^2.25.5
   flutter:
     sdk: flutter
+  http: ^1.2.2
   table_calendar: ^3.0.0
   shared_preferences: ^2.2.0
 
