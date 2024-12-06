@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WishlistPage extends StatefulWidget {
   @override
@@ -10,8 +9,7 @@ class WishlistPage extends StatefulWidget {
 class _WishlistPageState extends State<WishlistPage> {
   final List<WishlistItem> _wishlistItems = [];
   final TextEditingController _controller = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
-  final TextEditingController _categoryController = TextEditingController();
+  int? _editingIndex; // Menyimpan indeks item yang sedang diedit
 
   @override
   void initState() {
@@ -20,37 +18,69 @@ class _WishlistPageState extends State<WishlistPage> {
   }
 
   Future<void> _loadWishlist() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? wishlistData = prefs.getString('wishlist');
-    if (wishlistData != null) {
-      final List decodedData = jsonDecode(wishlistData);
-      setState(() {
-        _wishlistItems.addAll(decodedData.map((e) => WishlistItem.fromJson(e)));
-      });
-    }
+    final snapshot =
+        await FirebaseFirestore.instance.collection('wishlist').get();
+    setState(() {
+      _wishlistItems.clear();
+      for (var doc in snapshot.docs) {
+        _wishlistItems.add(WishlistItem.fromJson(doc.data()));
+      }
+    });
   }
 
   Future<void> _saveWishlist() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String encodedData =
-        jsonEncode(_wishlistItems.map((e) => e.toJson()).toList());
-    await prefs.setString('wishlist', encodedData);
+    for (var item in _wishlistItems) {
+      await FirebaseFirestore.instance
+          .collection('wishlist')
+          .doc(item.title) // Gunakan title sebagai id dokumen
+          .set(item.toJson());
+    }
+  }
+
+  void _resetInput() {
+    _controller.clear();
+    _editingIndex = null; // Reset indeks setelah update
   }
 
   void _addItem() {
     if (_controller.text.isNotEmpty) {
       setState(() {
-        _wishlistItems.add(WishlistItem(
-          title: _controller.text,
-          note: _noteController.text,
-          category: _categoryController.text,
-          isPurchased: false,
-        ));
-        _controller.clear();
-        _noteController.clear();
-        _categoryController.clear();
+        if (_editingIndex == null) {
+          // Tambah item baru
+          _wishlistItems.add(WishlistItem(
+            title: _controller.text,
+            isPurchased: false,
+          ));
+        } else {
+          // Update item yang sudah ada
+          WishlistItem updatedItem = WishlistItem(
+            title: _controller.text,
+            isPurchased: _wishlistItems[_editingIndex!].isPurchased,
+          );
+
+          // Hapus item lama dari Firestore
+          FirebaseFirestore.instance
+              .collection('wishlist')
+              .doc(_wishlistItems[_editingIndex!]
+                  .title) // Menggunakan title item lama
+              .delete();
+
+          // Update item di daftar lokal
+          _wishlistItems[_editingIndex!] = updatedItem;
+
+          // Tambahkan item yang sudah diperbarui ke Firestore
+          FirebaseFirestore.instance
+              .collection('wishlist')
+              .doc(updatedItem.title) // Menggunakan title item yang baru
+              .set(updatedItem.toJson());
+        }
+        _resetInput(); // Reset input field
       });
-      _saveWishlist();
+
+      // Panggil _saveWishlist hanya jika menambah item baru
+      if (_editingIndex == null) {
+        _saveWishlist();
+      }
     }
   }
 
@@ -75,6 +105,10 @@ class _WishlistPageState extends State<WishlistPage> {
 
     if (confirm) {
       setState(() {
+        FirebaseFirestore.instance
+            .collection('wishlist')
+            .doc(_wishlistItems[index].title) // Hapus dari Firestore
+            .delete();
         _wishlistItems.removeAt(index);
       });
       _saveWishlist();
@@ -88,10 +122,15 @@ class _WishlistPageState extends State<WishlistPage> {
     _saveWishlist();
   }
 
+  void _editItem(int index) {
+    setState(() {
+      _controller.text = _wishlistItems[index].title;
+      _editingIndex = index; // Set indeks untuk edit
+    });
+  }
+
   void _shareWishlist() {
-    final String items = _wishlistItems
-        .map((item) => '${item.title} (${item.category})')
-        .join(', ');
+    final String items = _wishlistItems.map((item) => item.title).join(', ');
     final String message = "My Wishlist: $items";
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Sharing: $message")),
@@ -123,31 +162,12 @@ class _WishlistPageState extends State<WishlistPage> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: 'Note',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _categoryController,
-              decoration: InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
           ElevatedButton(
             onPressed: _addItem,
-            child: Text('Add to Wishlist',
-                style: TextStyle(
-                    color: Colors.white)), // Text color changed to white
+            child: Text(
+              _editingIndex == null ? 'Add to Wishlist' : 'Update Item',
+              style: TextStyle(color: Colors.white),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.pink.shade600,
             ),
@@ -165,15 +185,6 @@ class _WishlistPageState extends State<WishlistPage> {
                           : null,
                     ),
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_wishlistItems[index].note.isNotEmpty)
-                        Text('Note: ${_wishlistItems[index].note}'),
-                      if (_wishlistItems[index].category.isNotEmpty)
-                        Text('Category: ${_wishlistItems[index].category}'),
-                    ],
-                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -185,6 +196,11 @@ class _WishlistPageState extends State<WishlistPage> {
                         ),
                         onPressed: () => _togglePurchased(index),
                         color: Colors.green,
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.edit),
+                        onPressed: () => _editItem(index),
+                        color: Colors.blue,
                       ),
                       IconButton(
                         icon: Icon(Icons.delete),
@@ -205,22 +221,16 @@ class _WishlistPageState extends State<WishlistPage> {
 
 class WishlistItem {
   String title;
-  String note;
-  String category;
   bool isPurchased;
 
   WishlistItem({
     required this.title,
-    this.note = '',
-    this.category = '',
     this.isPurchased = false,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'title': title,
-      'note': note,
-      'category': category,
       'isPurchased': isPurchased,
     };
   }
@@ -228,8 +238,6 @@ class WishlistItem {
   static WishlistItem fromJson(Map<String, dynamic> json) {
     return WishlistItem(
       title: json['title'],
-      note: json['note'],
-      category: json['category'],
       isPurchased: json['isPurchased'],
     );
   }
