@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MyApp());
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MyApp extends StatelessWidget {
   @override
@@ -24,11 +22,15 @@ class DiaryPage extends StatefulWidget {
 }
 
 class _DiaryPageState extends State<DiaryPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  User? _user;
   List<DiaryEntry> _diaryEntries = [];
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   String _selectedMood = '';
-  int? _editingIndex;
+  String? _editingId;
 
   final List<String> _moods = [
     '😊',
@@ -42,51 +44,72 @@ class _DiaryPageState extends State<DiaryPage> {
     '😕'
   ];
 
-  void _addOrUpdateDiaryEntry() {
-    if (_titleController.text.isNotEmpty) {
-      setState(() {
-        if (_editingIndex == null) {
-          _diaryEntries.add(DiaryEntry(
-            title: _titleController.text,
-            date: DateTime.now(),
-            media: [],
-            tags: [],
-            mood: _selectedMood,
-            content: _contentController.text,
-          ));
-        } else {
-          // Update the existing entry
-          _diaryEntries[_editingIndex!] = DiaryEntry(
-            title: _titleController.text,
-            date: _diaryEntries[_editingIndex!].date,
-            media: [],
-            tags: [],
-            mood: _selectedMood,
-            content: _contentController.text,
-          );
-          _editingIndex = null; // Reset editing index
-        }
+  @override
+  void initState() {
+    super.initState();
+    _user = _auth.currentUser;
+    _fetchDiaryEntries();
+  }
 
-        // Clear input fields
-        _titleController.clear();
-        _contentController.clear();
-        _selectedMood = '';
+  Future<void> _fetchDiaryEntries() async {
+    if (_user != null) {
+      final snapshot = await _firestore
+          .collection('diaries')
+          .where('userId', isEqualTo: _user!.uid)
+          .get();
+
+      setState(() {
+        _diaryEntries = snapshot.docs.map((doc) {
+          return DiaryEntry.fromDocument(doc);
+        }).toList();
       });
     }
   }
 
-  void _deleteDiaryEntry(int index) {
-    setState(() {
-      _diaryEntries.removeAt(index);
-    });
+  Future<void> _addOrUpdateDiaryEntry() async {
+    if (_titleController.text.isNotEmpty) {
+      if (_editingId == null) {
+        // Add new entry
+        await _firestore.collection('diaries').add({
+          'title': _titleController.text,
+          'date': DateTime.now(),
+          'media': [],
+          'tags': [],
+          'mood': _selectedMood,
+          'content': _contentController.text,
+          'userId': _user!.uid,
+        });
+      } else {
+        // Update existing entry
+        await _firestore.collection('diaries').doc(_editingId).update({
+          'title': _titleController.text,
+          'mood': _selectedMood,
+          'content': _contentController.text,
+        });
+        _editingId = null; // Reset editing ID
+      }
+
+      // Clear input fields
+      _titleController.clear();
+      _contentController.clear();
+      _selectedMood = '';
+
+      // Refresh diary entries
+      _fetchDiaryEntries();
+    }
   }
 
-  void _setEditMode(int index) {
+  Future<void> _deleteDiaryEntry(String id) async {
+    await _firestore.collection('diaries').doc(id).delete();
+    _fetchDiaryEntries();
+  }
+
+  void _setEditMode(DiaryEntry entry) {
     setState(() {
-      _editingIndex = index;
-      _titleController.text = _diaryEntries[index].title;
-      _selectedMood = _diaryEntries[index].mood;
-      _contentController.text = _diaryEntries[index].content;
+      _editingId = entry.id;
+      _titleController.text = entry.title;
+      _selectedMood = entry.mood;
+      _contentController.text = entry.content;
     });
   }
 
@@ -98,10 +121,7 @@ class _DiaryPageState extends State<DiaryPage> {
           padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Colors.pink.shade100,
-                Colors.white,
-              ],
+              colors: [Colors.pink.shade100, Colors.white],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -132,11 +152,13 @@ class _DiaryPageState extends State<DiaryPage> {
                               children: [
                                 IconButton(
                                   icon: Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () => _setEditMode(index),
+                                  onPressed: () =>
+                                      _setEditMode(_diaryEntries[index]),
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deleteDiaryEntry(index),
+                                  onPressed: () => _deleteDiaryEntry(
+                                      _diaryEntries[index].id),
                                 ),
                               ],
                             ),
@@ -255,14 +277,14 @@ class _DiaryPageState extends State<DiaryPage> {
                   ),
                 );
               }).toList(),
-              onChanged: (String? newValue) {
+              onChanged: (value) {
                 setState(() {
-                  _selectedMood = newValue ?? '';
+                  _selectedMood = value!;
                 });
               },
             ),
             IconButton(
-              icon: Icon(Icons.add, color: Colors.pink),
+              icon: Icon(Icons.add),
               onPressed: _addOrUpdateDiaryEntry,
             ),
           ],
@@ -273,66 +295,42 @@ class _DiaryPageState extends State<DiaryPage> {
 }
 
 class DiaryEntry {
-  String title;
-  DateTime date;
-  List<String> media;
-  List<String> tags;
-  String mood;
-  String content;
+  final String id;
+  final String title;
+  final DateTime date;
+  final String mood;
+  final String content;
 
   DiaryEntry({
+    required this.id,
     required this.title,
     required this.date,
-    required this.media,
-    required this.tags,
     required this.mood,
     required this.content,
   });
+
+  factory DiaryEntry.fromDocument(DocumentSnapshot doc) {
+    return DiaryEntry(
+      id: doc.id,
+      title: doc['title'],
+      date: (doc['date'] as Timestamp).toDate(),
+      mood: doc['mood'],
+      content: doc['content'],
+    );
+  }
 }
 
 class Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Logo(),
-          BackDate(),
-        ],
-      ),
-    );
-  }
-}
-
-class Logo extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Image.asset('images/v1_3.png', width: 50),
-        SizedBox(width: 10),
-        Text('DIARY',
-            style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-}
-
-class BackDate extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: () {
-            Navigator.pop(context);
-          },
-          child: Icon(Icons.arrow_back, size: 30, color: Colors.white),
+      height: 100,
+      child: Center(
+        child: Text(
+          'My Diary',
+          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
         ),
-        SizedBox(width: 10),
-      ],
+      ),
     );
   }
 }
