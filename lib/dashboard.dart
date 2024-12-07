@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'diary.dart'; // Import halaman diary
-import 'todolist.dart'; // Import halaman todolist
-import 'wishlist.dart'; // Import halaman wishlist
-import 'package:table_calendar/table_calendar.dart'; // Import table_calendar
-import 'settings.dart';
+import 'diary.dart'; // Halaman diary
+import 'todolist.dart'; // Halaman todolist
+import 'wishlist.dart'; // Halaman wishlist
+import 'settings.dart'; // Halaman settings
+import 'main.dart'; // Halaman login
+import 'package:table_calendar/table_calendar.dart'; // Library table_calendar
 
 void main() {
   runApp(MyApp());
@@ -35,7 +36,7 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _isLoadingWeather = true;
   bool _isLoadingCalendar = true;
   String _errorMessage = '';
-  late Map<DateTime, List<String>> _holidays; // Data untuk hari libur
+  late Map<DateTime, List<String>> _holidays;
   late DateTime _selectedDay;
   late DateTime _focusedDay;
 
@@ -44,7 +45,7 @@ class _DashboardPageState extends State<DashboardPage> {
     super.initState();
     _fetchWeather();
     _fetchCalendar();
-    _holidays = {}; // Inisialisasi data libur
+    _holidays = {};
     _selectedDay = DateTime.now();
     _focusedDay = DateTime.now();
   }
@@ -75,7 +76,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Fungsi untuk mengambil data hari libur dari Calendarific API
+  // Fungsi untuk mengambil data hari libur
   Future<void> _fetchCalendar() async {
     try {
       final response = await http.get(Uri.parse(
@@ -85,7 +86,7 @@ class _DashboardPageState extends State<DashboardPage> {
         setState(() {
           _calendarData = json.decode(response.body);
           _isLoadingCalendar = false;
-          _parseHolidays(); // Parsing data libur
+          _parseHolidays();
         });
       } else {
         setState(() {
@@ -102,7 +103,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Parsing data libur ke format yang bisa dipakai oleh TableCalendar
+  // Parsing hari libur
   void _parseHolidays() {
     if (_calendarData != null &&
         _calendarData!['response']['holidays'] != null) {
@@ -110,14 +111,9 @@ class _DashboardPageState extends State<DashboardPage> {
       setState(() {
         for (var holiday in holidays) {
           DateTime holidayDate = DateTime.parse(holiday['date']['iso']);
-          // Menambahkan nama hari libur ke dalam map
           _holidays[holidayDate] = [holiday['name']];
-          print(
-              'Holiday added: ${holiday['name']} on $holidayDate'); // Debugging
         }
       });
-    } else {
-      print('No holidays found in the response'); // Debugging
     }
   }
 
@@ -129,7 +125,7 @@ class _DashboardPageState extends State<DashboardPage> {
         centerTitle: true,
         backgroundColor: Colors.pink.shade600,
       ),
-      drawer: MyDrawer(), // Menambahkan drawer di sini
+      drawer: MyDrawer(),
       body: SingleChildScrollView(
         child: Container(
           padding: EdgeInsets.all(20),
@@ -247,7 +243,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   _selectedDay = selectedDay;
                   _focusedDay = focusedDay;
                 });
-                // Menampilkan dialog jika ada hari libur
                 if (_holidays[selectedDay] != null) {
                   showDialog(
                     context: context,
@@ -317,6 +312,16 @@ class MyDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
+            leading: Icon(Icons.dashboard),
+            title: Text('Dashboard'),
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => DashboardPage()),
+              );
+            },
+          ),
+          ListTile(
             leading: Icon(Icons.book),
             title: Text('Diary'),
             onTap: () {
@@ -348,11 +353,21 @@ class MyDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: Icon(Icons.settings),
-            title: Text('Settings'), // Menambahkan item Settings
+            title: Text('Settings'),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => SettingsPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.logout),
+            title: Text('Logout'),
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
               );
             },
           ),

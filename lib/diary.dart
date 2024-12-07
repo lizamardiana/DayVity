@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dashboard.dart'; // Halaman diary
+import 'todolist.dart'; // Halaman todolist
+import 'wishlist.dart'; // Halaman wishlist
+import 'settings.dart'; // Halaman settings
+import 'main.dart'; // Halaman login
 
 class MyApp extends StatelessWidget {
   @override
@@ -116,6 +121,12 @@ class _DiaryPageState extends State<DiaryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Diary'),
+        centerTitle: true,
+        backgroundColor: Colors.pink.shade600,
+      ),
+      drawer: MyDrawer(), // Panggil drawer di sini
       body: SingleChildScrollView(
         child: Container(
           padding: EdgeInsets.all(20),
@@ -324,12 +335,101 @@ class Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 100,
+      padding: EdgeInsets.symmetric(vertical: 20),
       child: Center(
+        // Menambahkan widget Center
         child: Text(
-          'My Diary',
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+          'Welcome Your Diary',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class MyDrawer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.pink,
+            ),
+            child: Text(
+              'Menu',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: Icon(Icons.dashboard),
+            title: Text('Dashboard'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DashboardPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.book),
+            title: Text('Diary'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DiaryPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.checklist),
+            title: Text('To-do List'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TodoListPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.favorite),
+            title: Text('Wish List'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WishlistPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.settings),
+            title: Text('Settings'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.logout),
+            title: Text('Logout'),
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
